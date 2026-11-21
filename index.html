@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gray-Scott 반응-확산 모델을 직접 조절하고 자연 패턴을 관찰하는 인터랙티브 실험실">
+  <title>Reaction-Diffusion Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">RD</span> Reaction-Diffusion Lab</a>
+    <span class="top-note">GRAY-SCOTT MODEL · INTERACTIVE SIMULATION</span>
+  </header>
+
+  <main class="layout">
+    <section class="intro">
+      <p class="eyebrow">COMPUTATIONAL SCIENCE / 01</p>
+      <h1>자연의 패턴을<br><em>수학으로 만들어 보세요.</em></h1>
+      <p class="intro-copy">두 물질의 반응과 확산을 수치적으로 계산해 점, 줄무늬, 미로와 같은 패턴이 형성되는 과정을 관찰합니다.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="simulation panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">LIVE SIMULATION</p>
+            <h2>패턴 생성 화면</h2>
+          </div>
+          <div class="status"><span id="statusDot"></span><span id="statusText">실행 중</span></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="simCanvas" width="240" height="240" aria-label="반응-확산 패턴 시뮬레이션"></canvas>
+          <div class="canvas-overlay">CLICK / DRAG TO ADD B</div>
+        </div>
+        <div class="sim-footer">
+          <span id="iterationCount">0 iterations</span>
+          <span>GRID 240 × 240</span>
+        </div>
+        <div class="button-row">
+          <button id="toggleBtn" class="button button-primary">Ⅱ 일시정지</button>
+          <button id="resetBtn" class="button">↻ 초기화</button>
+          <button id="seedBtn" class="button">＋ 무작위 씨앗</button>
+          <button id="saveBtn" class="button">↓ 이미지 저장</button>
+        </div>
+        <p class="hint">패턴 화면을 클릭하거나 드래그하면 해당 위치에 B 물질을 추가할 수 있습니다.</p>
+      </div>
+
+      <aside class="controls panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">EXPERIMENT CONTROLS</p>
+            <h2>매개변수 조절</h2>
+          </div>
+          <button id="defaultsBtn" class="text-button">기본값 복원</button>
+        </div>
+
+        <div class="preset-block">
+          <label class="section-label">패턴 프리셋</label>
+          <div class="preset-grid">
+            <button class="preset active" data-preset="spots"><span class="preset-art spots"></span><span>Spots<small>점무늬</small></span></button>
+            <button class="preset" data-preset="stripes"><span class="preset-art stripes"></span><span>Stripes<small>줄무늬</small></span></button>
+            <button class="preset" data-preset="maze"><span class="preset-art maze"></span><span>Maze<small>미로</small></span></button>
+            <button class="preset" data-preset="waves"><span class="preset-art waves"></span><span>Waves<small>파동</small></span></button>
+          </div>
+        </div>
+
+        <div class="parameter-list">
+          <div class="parameter">
+            <div class="parameter-title"><label for="da">A 확산 계수 <b>D<sub>A</sub></b></label><output id="daOut">1.00</output></div>
+            <input id="da" type="range" min="0.1" max="1.5" step="0.01" value="1">
+            <div class="range-labels"><span>0.10</span><span>1.50</span></div>
+            <p>A 물질이 주변 공간으로 퍼지는 정도입니다.</p>
+          </div>
+          <div class="parameter">
+            <div class="parameter-title"><label for="db">B 확산 계수 <b>D<sub>B</sub></b></label><output id="dbOut">0.50</output></div>
+            <input id="db" type="range" min="0.05" max="1" step="0.01" value="0.5">
+            <div class="range-labels"><span>0.05</span><span>1.00</span></div>
+            <p>B 물질이 주변 공간으로 퍼지는 정도입니다.</p>
+          </div>
+          <div class="parameter">
+            <div class="parameter-title"><label for="feed">공급 속도 <b>f</b></label><output id="feedOut">0.0550</output></div>
+            <input id="feed" type="range" min="0.01" max="0.09" step="0.0005" value="0.055">
+            <div class="range-labels"><span>0.0100</span><span>0.0900</span></div>
+            <p>A 물질이 시스템에 공급되는 속도입니다.</p>
+          </div>
+          <div class="parameter">
+            <div class="parameter-title"><label for="kill">제거 속도 <b>k</b></label><output id="killOut">0.0620</output></div>
+            <input id="kill" type="range" min="0.03" max="0.075" step="0.0005" value="0.062">
+            <div class="range-labels"><span>0.0300</span><span>0.0750</span></div>
+            <p>B 물질이 제거되는 속도입니다.</p>
+          </div>
+          <div class="parameter">
+            <div class="parameter-title"><label for="speed">계산 속도</label><output id="speedOut">6 steps/frame</output></div>
+            <input id="speed" type="range" min="1" max="15" step="1" value="6">
+            <div class="range-labels"><span>느리게</span><span>빠르게</span></div>
+            <p>화면 프레임마다 반복할 계산 횟수입니다.</p>
+          </div>
+        </div>
+        <div class="notice"><strong>실험 팁</strong><br>한 번에 하나의 매개변수만 변경하고 결과를 비교하면 각 변수가 패턴에 미치는 영향을 더 명확하게 파악할 수 있습니다.</div>
+      </aside>
+    </section>
+
+    <section class="lower-grid">
+      <article class="panel theory">
+        <p class="eyebrow">MODEL</p>
+        <h2>Gray-Scott 반응-확산 모델</h2>
+        <p>두 물질 A와 B가 반응하고 확산하는 과정을 편미분방정식으로 표현합니다.</p>
+        <div class="equation">
+          <div>∂A/∂t = D<sub>A</sub>∇²A − AB² + f(1 − A)</div>
+          <div>∂B/∂t = D<sub>B</sub>∇²B + AB² − (f + k)B</div>
+        </div>
+        <p class="small-muted">∇²는 주변 격자와의 농도 차이를 나타내는 라플라시안 연산자입니다. 프로그램은 이 방정식을 작은 시간 간격으로 반복 계산합니다.</p>
+      </article>
+      <article class="panel experiment">
+        <p class="eyebrow">YOUR EXPERIMENT</p>
+        <h2>탐구 기록</h2>
+        <p>매개변수와 패턴의 관계를 관찰하고 결과를 기록해 보세요.</p>
+        <div class="record-values" id="recordValues">Dₐ 1.00 · Dᵦ 0.50 · f 0.0550 · k 0.0620</div>
+        <button id="copyBtn" class="button button-wide">현재 매개변수 복사</button>
+      </article>
+    </section>
+    <footer>REACTION-DIFFUSION LAB <span>Educational simulation · No external libraries</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
