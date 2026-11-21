@@ -10,7 +10,7 @@
   <main class="workspace">
     <section class="simulation">
       <div class="canvas-wrap">
-        <canvas id="simCanvas" width="240" height="240" aria-label="반응-확산 패턴 생성 화면"></canvas>
+        <canvas id="simCanvas" width="240" height="240" role="img" aria-label="반응-확산 패턴 생성 화면">반응-확산 패턴을 표시하는 캔버스를 지원하지 않는 브라우저입니다.</canvas>
       </div>
     </section>
 
@@ -39,7 +39,7 @@
       </div>
 
       <div class="actions">
-        <button id="toggleBtn" class="primary">일시정지</button>
+        <button id="toggleBtn" class="primary" aria-pressed="true">일시정지</button>
         <button id="resetBtn">초기화</button>
         <button id="randomBtn">무작위 생성</button>
         <button id="saveBtn">PNG 저장</button>
@@ -53,9 +53,10 @@
           <option value="stripes">Stripes</option>
           <option value="maze">Maze</option>
           <option value="waves">Waves</option>
+          <option value="custom">사용자 설정</option>
         </select>
       </div>
-      <div class="status"><span id="statusDot"></span><span id="statusText">실행 중</span></div>
+      <div class="status"><span id="statusDot"></span><span id="statusText" role="status" aria-live="polite">실행 중</span></div>
     </aside>
   </main>
   <script src="script.js"></script>

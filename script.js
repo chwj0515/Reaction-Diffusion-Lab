@@ -3,7 +3,15 @@
   const $ = id => document.getElementById(id);
   const canvas = $("simCanvas");
   const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) {
+    canvas.replaceWith("이 브라우저는 캔버스를 지원하지 않습니다.");
+    return;
+  }
   const N = canvas.width, SIZE = N * N;
+  const up = new Int32Array(SIZE), down = new Int32Array(SIZE);
+  const left = new Int32Array(SIZE), right = new Int32Array(SIZE);
+  const ul = new Int32Array(SIZE), ur = new Int32Array(SIZE);
+  const dl = new Int32Array(SIZE), dr = new Int32Array(SIZE);
   let A = new Float32Array(SIZE), B = new Float32Array(SIZE);
   let nextA = new Float32Array(SIZE), nextB = new Float32Array(SIZE);
   const image = ctx.createImageData(N, N);
@@ -19,7 +27,7 @@
     waves:   { da: 1, db: .5, feed: .014, kill: .045 }
   };
 
-  function readControls() {
+  function readControls(markCustom = true) {
     for (const key of Object.keys(params)) {
       const input = $(key);
       if (!input) continue;
@@ -28,13 +36,13 @@
         key === "feed" || key === "kill" ? params[key].toFixed(4) :
         key === "speed" ? String(params[key]) : params[key].toFixed(2);
     }
+    if (markCustom) $("preset").value = "custom";
   }
 
-  function syncControls() {
-    for (const key of Object.keys(params)) {
-      $(key).value = params[key];
-    }
-    readControls();
+  function syncControls(presetName) {
+    for (const key of Object.keys(params)) $(key).value = params[key];
+    readControls(false);
+    if (presetName) $("preset").value = presetName;
   }
 
   function addSeed(cx, cy, radius = 6, amount = .25) {
@@ -69,30 +77,34 @@
     render();
   }
 
-  function laplacian(field, x, y) {
-    const up = ((y + N - 1) % N) * N + x;
-    const down = ((y + 1) % N) * N + x;
-    const left = y * N + (x + N - 1) % N;
-    const right = y * N + (x + 1) % N;
-    const ul = ((y + N - 1) % N) * N + (x + N - 1) % N;
-    const ur = ((y + N - 1) % N) * N + (x + 1) % N;
-    const dl = ((y + 1) % N) * N + (x + N - 1) % N;
-    const dr = ((y + 1) % N) * N + (x + 1) % N;
-    return .2 * (field[up] + field[down] + field[left] + field[right]) +
-      .05 * (field[ul] + field[ur] + field[dl] + field[dr]) - field[y * N + x];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      const yy = y === 0 ? N - 1 : y - 1;
+      const yd = y === N - 1 ? 0 : y + 1;
+      const xl = x === 0 ? N - 1 : x - 1;
+      const xr = x === N - 1 ? 0 : x + 1;
+      up[i] = yy * N + x; down[i] = yd * N + x;
+      left[i] = y * N + xl; right[i] = y * N + xr;
+      ul[i] = yy * N + xl; ur[i] = yy * N + xr;
+      dl[i] = yd * N + xl; dr[i] = yd * N + xr;
+    }
+  }
+
+  function laplacian(field, i) {
+    return .2 * (field[up[i]] + field[down[i]] + field[left[i]] + field[right[i]]) +
+      .05 * (field[ul[i]] + field[ur[i]] + field[dl[i]] + field[dr[i]]) - field[i];
   }
 
   function step() {
     const { da, db, feed, kill } = params;
-    for (let y = 0; y < N; y++) {
-      for (let x = 0; x < N; x++) {
-        const i = y * N + x, a = A[i], b = B[i];
-        const reaction = a * b * b;
-        const dA = da * laplacian(A, x, y) - reaction + feed * (1 - a);
-        const dB = db * laplacian(B, x, y) + reaction - (feed + kill) * b;
-        nextA[i] = Math.max(0, Math.min(1, a + dA));
-        nextB[i] = Math.max(0, Math.min(1, b + dB));
-      }
+    for (let i = 0; i < SIZE; i++) {
+      const a = A[i], b = B[i];
+      const reaction = a * b * b;
+      const dA = da * laplacian(A, i) - reaction + feed * (1 - a);
+      const dB = db * laplacian(B, i) + reaction - (feed + kill) * b;
+      nextA[i] = Math.max(0, Math.min(1, a + dA));
+      nextB[i] = Math.max(0, Math.min(1, b + dB));
     }
     [A, nextA] = [nextA, A];
     [B, nextB] = [nextB, B];
@@ -113,18 +125,22 @@
   }
 
   function animate() {
-    if (running) {
-      for (let i = 0; i < params.speed; i++) step();
-      render();
-    }
+    if (!running) return;
+    for (let i = 0; i < params.speed; i++) step();
+    render();
     animationId = requestAnimationFrame(animate);
   }
 
   function setRunning(value) {
+    const changed = running !== value;
     running = value;
     $("toggleBtn").textContent = running ? "일시정지" : "실행";
+    $("toggleBtn").setAttribute("aria-pressed", String(running));
     $("statusText").textContent = running ? "실행 중" : "일시정지";
     $("statusDot").classList.toggle("paused", !running);
+    if (!changed) return;
+    if (running) animate();
+    else cancelAnimationFrame(animationId);
   }
 
   $("toggleBtn").addEventListener("click", () => setRunning(!running));
