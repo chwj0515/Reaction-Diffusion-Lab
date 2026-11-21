@@ -145,6 +145,8 @@
 
   $("toggleBtn").addEventListener("click", () => setRunning(!running));
   $("resetBtn").addEventListener("click", () => {
+    Object.assign(params, defaults);
+    syncControls("default");
     initialPattern();
     setRunning(true);
   });
@@ -160,9 +162,11 @@
   });
 
   $("preset").addEventListener("change", event => {
-    const selected = presets[event.target.value];
+    const presetName = event.target.value;
+    if (presetName === "custom") return;
+    const selected = presets[presetName];
     for (const key of ["da", "db", "feed", "kill"]) params[key] = selected[key];
-    syncControls();
+    syncControls(presetName);
     initialPattern();
     setRunning(true);
   });
@@ -192,7 +196,7 @@
   canvas.addEventListener("pointercancel", stopPainting);
   canvas.addEventListener("lostpointercapture", stopPainting);
 
-  syncControls();
+  syncControls("default");
   initialPattern();
   setRunning(true);
   animate();

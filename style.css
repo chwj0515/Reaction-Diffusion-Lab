@@ -13,8 +13,10 @@ canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 .parameter input{display:block;width:100%;margin:13px 0 2px;accent-color:var(--accent);cursor:pointer}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
 button,select{font:inherit;color:var(--text);background:#1a2934;border:1px solid #354956;border-radius:7px;padding:10px 12px;font-size:12px}
-button{cursor:pointer}
+button{cursor:pointer;min-height:40px}
 button:hover,select:hover{border-color:var(--accent)}
+button:active{transform:translateY(1px)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 button.primary{background:#263b2b;border-color:#587b3c;color:#d9f5b4}
 .preset-row{display:flex;align-items:center;gap:12px;margin-top:14px;font-size:12px}
 .preset-row label{white-space:nowrap}
@@ -22,4 +24,5 @@ button.primary{background:#263b2b;border-color:#587b3c;color:#d9f5b4}
 .status{display:flex;align-items:center;gap:8px;margin-top:16px;color:var(--muted);font-size:12px}
 #statusDot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 #statusDot.paused{background:#8b9ba6}
-@media(max-width:720px){.workspace{grid-template-columns:1fr;width:min(620px,94vw);gap:14px;padding:18px 0}.controls{padding:18px}.controls h2{margin-bottom:8px}.parameter{padding:10px 0}}
+@media(max-width:720px){.workspace{grid-template-columns:1fr;width:min(620px,94vw);gap:14px;padding:18px 0}.controls{padding:18px}.controls h2{margin-bottom:8px}.parameter{padding:10px 0}.parameter input{height:28px}.preset-row select{min-height:40px}}
+@media(prefers-reduced-motion:reduce){button:active{transform:none}}
