@@ -6,38 +6,66 @@
   const N = canvas.width, SIZE = N * N;
   let A = new Float32Array(SIZE), B = new Float32Array(SIZE);
   let nextA = new Float32Array(SIZE), nextB = new Float32Array(SIZE);
-  let image = ctx.createImageData(N, N);
-  let running = true, iterations = 0, animationId = 0;
-  const params = { da: 1, db: .5, feed: .055, kill: .062, speed: 6 };
+  const image = ctx.createImageData(N, N);
+  let running = true, animationId = 0, painting = false;
+  const defaults = { da: 1, db: .5, feed: .055, kill: .062, speed: 6 };
+  const params = { ...defaults };
 
+  const presets = {
+    default: { da: 1, db: .5, feed: .055, kill: .062 },
+    spots:   { da: 1, db: .5, feed: .035, kill: .065 },
+    stripes: { da: 1, db: .5, feed: .025, kill: .060 },
+    maze:    { da: 1, db: .5, feed: .029, kill: .057 },
+    waves:   { da: 1, db: .5, feed: .014, kill: .045 }
+  };
 
   function readControls() {
-    for (const key of ["da", "db", "feed", "kill", "speed"]) {
-      params[key] = Number($(key).value);
+    for (const key of Object.keys(params)) {
+      const input = $(key);
+      if (!input) continue;
+      params[key] = Number(input.value);
       $(key + "Out").textContent =
         key === "feed" || key === "kill" ? params[key].toFixed(4) :
-        key === "speed" ? `${params[key]} steps/frame` : params[key].toFixed(2);
+        key === "speed" ? String(params[key]) : params[key].toFixed(2);
     }
   }
 
-  function addSeed(cx, cy, radius = 6) {
+  function syncControls() {
+    for (const key of Object.keys(params)) {
+      $(key).value = params[key];
+    }
+    readControls();
+  }
+
+  function addSeed(cx, cy, radius = 6, amount = .25) {
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         if (dx * dx + dy * dy > radius * radius) continue;
         const x = (cx + dx + N) % N, y = (cy + dy + N) % N;
         const i = y * N + x;
-        A[i] = .5; B[i] = .25;
+        A[i] = .5;
+        B[i] = amount;
       }
     }
   }
 
-  function reset() {
+  function clearFields() {
     A.fill(1); B.fill(0); nextA.fill(1); nextB.fill(0);
+  }
+
+  function initialPattern() {
+    clearFields();
     addSeed(N >> 1, N >> 1, 9);
-    for (let i = 0; i < 18; i++) {
-      addSeed(Math.floor(Math.random() * N), Math.floor(Math.random() * N), 2 + Math.floor(Math.random() * 3));
+    render();
+  }
+
+  function randomPattern() {
+    clearFields();
+    const count = 12 + Math.floor(Math.random() * 22);
+    for (let i = 0; i < count; i++) {
+      addSeed(Math.floor(Math.random() * N), Math.floor(Math.random() * N),
+        2 + Math.floor(Math.random() * 6), .18 + Math.random() * .2);
     }
-    iterations = 0;
     render();
   }
 
@@ -51,7 +79,7 @@
     const dl = ((y + 1) % N) * N + (x + N - 1) % N;
     const dr = ((y + 1) % N) * N + (x + 1) % N;
     return .2 * (field[up] + field[down] + field[left] + field[right]) +
-           .05 * (field[ul] + field[ur] + field[dl] + field[dr]) - field[y * N + x];
+      .05 * (field[ul] + field[ur] + field[dl] + field[dr]) - field[y * N + x];
   }
 
   function step() {
@@ -68,7 +96,6 @@
     }
     [A, nextA] = [nextA, A];
     [B, nextB] = [nextB, B];
-    iterations++;
   }
 
   function render() {
@@ -93,31 +120,65 @@
     animationId = requestAnimationFrame(animate);
   }
 
+  function setRunning(value) {
+    running = value;
+    $("toggleBtn").textContent = running ? "일시정지" : "실행";
+    $("statusText").textContent = running ? "실행 중" : "일시정지";
+    $("statusDot").classList.toggle("paused", !running);
+  }
 
+  $("toggleBtn").addEventListener("click", () => setRunning(!running));
+  $("resetBtn").addEventListener("click", () => {
+    initialPattern();
+    setRunning(true);
+  });
+  $("randomBtn").addEventListener("click", () => {
+    randomPattern();
+    setRunning(true);
+  });
+  $("saveBtn").addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "reaction-diffusion-pattern.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
 
-  for (const key of ["da", "db", "feed", "kill", "speed"]) {
+  $("preset").addEventListener("change", event => {
+    const selected = presets[event.target.value];
+    for (const key of ["da", "db", "feed", "kill"]) params[key] = selected[key];
+    syncControls();
+    initialPattern();
+    setRunning(true);
+  });
+
+  for (const key of Object.keys(params)) {
     $(key).addEventListener("input", readControls);
   }
 
-  let painting = false;
+  // Brush: pointer input adds a small B-concentration seed to the simulation.
   function paint(event) {
     const rect = canvas.getBoundingClientRect();
     const x = Math.max(0, Math.min(N - 1, Math.floor((event.clientX - rect.left) / rect.width * N)));
     const y = Math.max(0, Math.min(N - 1, Math.floor((event.clientY - rect.top) / rect.height * N)));
     addSeed(x, y, 5);
+    render();
   }
   canvas.addEventListener("pointerdown", event => {
     painting = true;
     canvas.setPointerCapture(event.pointerId);
     paint(event);
   });
-  canvas.addEventListener("pointermove", event => { if (painting) paint(event); });
-  canvas.addEventListener("pointerup", () => { painting = false; });
-  canvas.addEventListener("pointercancel", () => { painting = false; });
+  canvas.addEventListener("pointermove", event => {
+    if (painting) paint(event);
+  });
+  const stopPainting = () => { painting = false; };
+  canvas.addEventListener("pointerup", stopPainting);
+  canvas.addEventListener("pointercancel", stopPainting);
+  canvas.addEventListener("lostpointercapture", stopPainting);
 
-
-  readControls();
-  reset();
+  syncControls();
+  initialPattern();
+  setRunning(true);
   animate();
   window.addEventListener("beforeunload", () => cancelAnimationFrame(animationId));
 })();
