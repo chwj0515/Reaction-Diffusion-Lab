@@ -16,18 +16,16 @@
   let nextA = new Float32Array(SIZE), nextB = new Float32Array(SIZE);
   const image = ctx.createImageData(N, N);
   let running = true, animationId = 0, painting = false;
-  const defaults = { da: 1, db: .5, feed: .055, kill: .062, speed: 6 };
-  const params = { ...defaults };
-
   const presets = {
-    default: { da: 1, db: .5, feed: .055, kill: .062 },
     spots:   { da: 1, db: .5, feed: .035, kill: .065 },
     stripes: { da: 1, db: .5, feed: .025, kill: .060 },
     maze:    { da: 1, db: .5, feed: .029, kill: .057 },
-    waves:   { da: 1, db: .5, feed: .014, kill: .045 }
+    mitosis: { da: 1, db: .5, feed: .0367, kill: .0649 }
   };
+  const defaults = { da: 1, db: .5, feed: .035, kill: .065, speed: 6 };
+  const params = { ...defaults };
 
-  function readControls(markCustom = true) {
+  function readControls() {
     for (const key of Object.keys(params)) {
       const input = $(key);
       if (!input) continue;
@@ -36,12 +34,11 @@
         key === "feed" || key === "kill" ? params[key].toFixed(4) :
         key === "speed" ? String(params[key]) : params[key].toFixed(2);
     }
-    if (markCustom) $("preset").value = "custom";
   }
 
   function syncControls(presetName) {
     for (const key of Object.keys(params)) $(key).value = params[key];
-    readControls(false);
+    readControls();
     if (presetName) $("preset").value = presetName;
   }
 
@@ -145,8 +142,8 @@
 
   $("toggleBtn").addEventListener("click", () => setRunning(!running));
   $("resetBtn").addEventListener("click", () => {
-    Object.assign(params, defaults);
-    syncControls("default");
+    Object.assign(params, presets.spots);
+    syncControls("spots");
     initialPattern();
     setRunning(true);
   });
@@ -163,7 +160,6 @@
 
   $("preset").addEventListener("change", event => {
     const presetName = event.target.value;
-    if (presetName === "custom") return;
     const selected = presets[presetName];
     for (const key of ["da", "db", "feed", "kill"]) params[key] = selected[key];
     syncControls(presetName);
@@ -196,7 +192,7 @@
   canvas.addEventListener("pointercancel", stopPainting);
   canvas.addEventListener("lostpointercapture", stopPainting);
 
-  syncControls("default");
+  syncControls("spots");
   initialPattern();
   setRunning(true);
   animate();
