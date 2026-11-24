@@ -17,10 +17,11 @@
   const image = ctx.createImageData(N, N);
   let running = true, animationId = 0, painting = false;
   const presets = {
-    spots:   { da: 1, db: .5, feed: .035, kill: .065 },
-    stripes: { da: 1, db: .5, feed: .025, kill: .060 },
-    maze:    { da: 1, db: .5, feed: .029, kill: .057 },
-    mitosis: { da: 1, db: .5, feed: .0367, kill: .0649 }
+    default: { da: 1, db: .5, feed: .055, kill: .062 },
+    spots:   { da: 1, db: .5, feed: .0425, kill: .0635 },
+    stripes: { da: 1, db: .5, feed: .0415, kill: .061 },
+    maze:    { da: 1, db: .5, feed: .042, kill: .0595 },
+    mitosis: { da: 1, db: .5, feed: .028, kill: .062 }
   };
   const defaults = { da: 1, db: .5, feed: .035, kill: .065, speed: 6 };
   const params = { ...defaults };
@@ -34,6 +35,10 @@
         key === "feed" || key === "kill" ? params[key].toFixed(4) :
         key === "speed" ? String(params[key]) : params[key].toFixed(2);
     }
+  }
+
+  function markCustomPreset() {
+    if ($("preset").value !== "custom") $("preset").value = "custom";
   }
 
   function syncControls(presetName) {
@@ -142,8 +147,8 @@
 
   $("toggleBtn").addEventListener("click", () => setRunning(!running));
   $("resetBtn").addEventListener("click", () => {
-    Object.assign(params, presets.spots);
-    syncControls("spots");
+    Object.assign(params, presets.default);
+    syncControls("default");
     initialPattern();
     setRunning(true);
   });
@@ -168,7 +173,10 @@
   });
 
   for (const key of Object.keys(params)) {
-    $(key).addEventListener("input", readControls);
+    $(key).addEventListener("input", () => {
+      readControls();
+      markCustomPreset();
+    });
   }
 
   // Brush: pointer input adds a small B-concentration seed to the simulation.
@@ -192,7 +200,7 @@
   canvas.addEventListener("pointercancel", stopPainting);
   canvas.addEventListener("lostpointercapture", stopPainting);
 
-  syncControls("spots");
+  syncControls("default");
   initialPattern();
   setRunning(true);
   animate();
